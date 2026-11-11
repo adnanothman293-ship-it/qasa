@@ -336,7 +336,7 @@ tr.day .dd span{font-weight:700;color:#1b53bf}tr.day .dd b{font-variant-numeric:
  <div id="srcBox"><label>مصدر المال</label><div class="chips" id="srcChips"></div><input id="e_src" list="dlS" placeholder="أو اكتب المصدر" style="margin-top:8px"></div>
  <label>التفاصيل</label><textarea id="e_det" rows="2"></textarea>
  <div class="two"><div><label>المورد</label><input id="e_sup" list="dlU"></div><div><label>اسم المشتري</label><input id="e_buyer" list="dlB"></div></div>
- <div class="need" id="edBox"><label style="margin-top:0">✍️ اسم المعدِّل (إجباري)</label><input id="e_by" placeholder="اكتب اسمك"><small style="color:var(--mut);display:block;margin-top:5px">يُسجَّل اسمك مع تاريخ ووقت التعديل</small></div>
+ <div class="need" id="edBox"><label style="margin-top:0">✍️ اسم المعدِّل (إجباري)</label><input id="e_by" placeholder="اكتب اسمك (إجباري في كل تعديل)" autocomplete="off"><small style="color:var(--mut);display:block;margin-top:5px">يُسجَّل اسمك مع تاريخ ووقت التعديل</small></div>
  <div class="hist" id="hist" style="display:none"></div>
  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" style="flex:1;justify-content:center;padding:13px" onclick="saveE()">✓ حفظ</button><button class="btn gr" id="againB" onclick="saveE(1)">حفظ + جديد</button><button class="btn l" onclick="closeM('md')">إلغاء</button><button class="btn d" id="delB" onclick="delE()">حذف</button></div>
 </div></div>
@@ -387,7 +387,7 @@ async function loadAll(silent){if(!silent)busy(1,'⏳ جاري تحميل الب
   renderAll()}catch(e){alert('⛔ تعذر تحميل البيانات: '+(e.message||e))}finally{if(!silent)busy(0)}}
 async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){$('login').classList.add('on');return}
  const ok=await sb.rpc('qasa_allowed');if(ok.error||!ok.data){await sb.auth.signOut();$('login').classList.add('on');$('lg_m').textContent='هذا الحساب غير مسموح له بفتح القاصة';return}
- $('login').classList.remove('on');$('stEm').textContent='داخل بحساب: '+session.user.email;if(!localStorage.getItem(K.u))localStorage.setItem(K.u,session.user.email.split('@')[0]);await loadAll()}
+ $('login').classList.remove('on');$('stEm').textContent='داخل بحساب: '+session.user.email;await loadAll()}
 async function login(){const e=$('lg_e').value.trim(),p=$('lg_p').value;if(!e||!p)return $('lg_m').textContent='اكتب الإيميل وكلمة المرور';$('lg_b').disabled=true;$('lg_m').textContent='';
  const{error}=await sb.auth.signInWithPassword({email:e,password:p});$('lg_b').disabled=false;$('lg_p').value='';if(error)return $('lg_m').textContent='الإيميل أو كلمة المرور غير صحيحة';boot()}
 async function logout(){if(!confirm('تسجيل خروج؟'))return;await sb.auth.signOut();location.reload()}
@@ -477,7 +477,7 @@ function dayRow(dt,d,cols,isBal){return`<tr class="day"><td colspan="${cols}"><d
 function detCell(e,sp){const m=[];if(sp&&e.prj)m.push('<span class="so">📁 '+esc(e.prj)+'</span>');if(e.sup)m.push('🚚 '+esc(e.sup));if(e.src)m.push('💰 '+esc(e.src));if(e.buyer)m.push('👤 '+esc(e.buyer));if(e.inv)m.push('🧾 فاتورة '+esc(e.inv));if(e.edits&&e.edits.length)m.push('<span class="ed">✎ '+esc(e.edits.at(-1).by)+'</span>');
  return`<td class="det"><div class="dt1">${esc(e.det)||'<span style="color:#bbb">—</span>'}</div>${m.length?`<div class="dt2">${m.join(' &nbsp;·&nbsp; ')}</div>`:''}</td>`}
 const td=(v,c)=>`<td${c?` class="${c}"`:''}>${v}</td>`;
-function mvTR(e,bal){return`<tr onclick="openF(null,'${e.id}')">${td(e.date)}${td(e.type=='out'?fmt(e.amount):'','n amt-out')}${td(e.type=='in'?fmt(e.amount):'','n amt-in')}${td(esc(e.inv))}${td(`<span class="cd">${esc(e.code||'')}</span>`)}<td class="det">${esc(e.det)}${e.edits&&e.edits.length?` <span class="ed">✎ ${esc(e.edits.at(-1).by)}</span>`:''}</td>${td(esc(e.buyer),'wr')}${td(esc(e.sup),'wr')}`}
+function mvTR(e,bal){return`<tr onclick="openF(null,'${e.id}')">${td(e.date)}${td(e.type=='out'?fmt(e.amount):'','n amt-out')}${td(e.type=='in'?fmt(e.amount):'','n amt-in')}${td(esc(e.inv))}${td(`<span class="cd">${esc(e.code||'')}</span>`)}<td class="det">${esc(e.det)}${e.edits&&e.edits.length?` <span class="ed">✎ عدّلها ${esc(e.edits.at(-1).by)} · ${esc(e.edits.at(-1).at)}${e.edits.length>1?' ('+e.edits.length+' تعديلات)':''}</span>`:''}</td>${td(esc(e.buyer),'wr')}${td(esc(e.sup),'wr')}`}
 function prjSum(L){const m={};L.forEach(e=>{const k=e.prj||'بدون مشروع';m[k]=m[k]||{i:0,o:0,n:0};m[k][e.type=='in'?'i':'o']+=e.amount;m[k].n++});return Object.entries(m).sort((a,b)=>b[1].o-a[1].o)}
 function kvT(rows){return`<table class="kv">${rows.map(([k,v,c])=>`<tr><td>${k}</td><td class="${c||''}">${typeof v=='number'?fmt(v):esc(v)}</td></tr>`).join('')}</table>`}
 function mvTotals(R){const p=PR.mv,lg=ledger(),open=p.a?lg.filter(x=>x.e.date<p.a).reduce((s,x)=>s+(x.e.type=='in'?x.e.amount:-x.e.amount),0):0,inPer=lg.filter(x=>inP(x.e,p)),close=open+sumT(inPer,'in')-sumT(inPer,'out');
@@ -577,7 +577,7 @@ function words(n){const on=['','واحد','اثنان','ثلاثة','أربعة'
  return g.reverse().filter(x=>x[0]).map(([v,s])=>!s?w3(v):v==1?sc[s][0]:v==2?sc[s][1]:v<=10?w3(v)+' '+sc[s][2]:w3(v)+' '+sc[s][0]).join(' و')}
 function openF(t,id,prj){EDIT=id?D.find(e=>e.id==id):null;const e=EDIT||{type:t||'out',date:today(),amount:0,prj:prj&&prj!='__none'?prj:'',det:'',inv:'',sup:'',buyer:'',src:''};
  setType(e.type);['code','date','inv','det','sup','buyer','src','prj'].forEach(k=>$('e_'+k).value=e[k]||'');{const nc=nextCode();$('nxB').dataset.c=nc;$('nxB').textContent='التالي: '+nc;$('nxB').style.display=EDIT&&EDIT.code?'none':''}codeChk();$('e_amount').value=e.amount?fmt(e.amount):'';$('e_co').value='';prjChg();chipsSrc();
- $('mt').innerHTML=EDIT?'تعديل حركة '+(EDIT.code?'<span class="cd">'+esc(EDIT.code)+'</span>':''):'حركة جديدة';$('delB').style.display=EDIT?'':'none';$('againB').style.display=EDIT?'none':'';$('edBox').style.display=EDIT?'':'none';$('e_by').value=localStorage.getItem(K.u)||'';
+ $('mt').innerHTML=EDIT?'تعديل حركة '+(EDIT.code?'<span class="cd">'+esc(EDIT.code)+'</span>':''):'حركة جديدة';$('delB').style.display=EDIT?'':'none';$('againB').style.display=EDIT?'none':'';$('edBox').style.display=EDIT?'':'none';$('e_by').value='';
  const h=$('hist');if(EDIT&&EDIT.edits&&EDIT.edits.length){h.style.display='';h.innerHTML='<b>📝 سجل التعديلات</b>'+EDIT.edits.slice().reverse().map(x=>`<div><b>${esc(x.by)}</b> — <span style="color:#999">${esc(x.at)}</span><br>${x.ch.map(c=>`${LBL[c[0]]||c[0]}: <s style="color:#c55">${esc(c[0]=='amount'?fmt(c[1]):c[0]=='type'?(c[1]=='in'?'مقبوض':'مدفوع'):c[1])||'فارغ'}</s> ← <b style="color:#1a7">${esc(c[0]=='amount'?fmt(c[2]):c[0]=='type'?(c[2]=='in'?'مقبوض':'مدفوع'):c[2])||'فارغ'}</b>`).join('<br>')}</div>`).join('')}else h.style.display='none';
  openM('md');amtChg();if(!EDIT)setTimeout(()=>$('e_code').focus(),350)}
 async function saveE(again){if(BUSY)return;const amount=num($('e_amount').value);if(!amount||amount<=0)return toast('أدخل المبلغ');if(!/^\d{4}-\d\d-\d\d$/.test($('e_date').value))return toast('أدخل التاريخ');
@@ -585,7 +585,7 @@ async function saveE(again){if(BUSY)return;const amount=num($('e_amount').value)
  const o={code,type:TYPE,date:$('e_date').value,amount};['inv','det','sup','buyer','src'].forEach(k=>o[k]=$('e_'+k).value.trim());o.prj=normPrj($('e_prj').value);if(o.type=='out')o.src='';
  if(findDup(o)&&!confirm('⚠️ توجد حركة مشابهة بنفس التاريخ والمبلغ.\nهل تريد الحفظ مع ذلك؟'))return;
  const co=$('e_co').value.trim();
- if(EDIT){const by=$('e_by').value.trim();if(!by){$('e_by').focus();return toast('اكتب اسم المعدِّل')}
+ if(EDIT){const by=$('e_by').value.trim();if(by.length<2){$('e_by').focus();return toast('✍️ اكتب اسم المعدِّل قبل الحفظ')}
   const ch=Object.keys(LBL).filter(k=>String(EDIT[k]??'')!==String(o[k]??'')).map(k=>[k,EDIT[k]??'',o[k]]);
   if(ch.length){const nE={...EDIT,...o,edits:[...(EDIT.edits||[]),{by,at:now(),ch}]};busy(1);const{error}=await sb.from('qasa_entries').update(toRow(nE)).eq('id',EDIT.id);busy(0);if(error)return dbErr(error);
    localStorage.setItem(K.u,by);Object.assign(EDIT,nE)}
@@ -596,7 +596,7 @@ async function saveE(again){if(BUSY)return;const amount=num($('e_amount').value)
  persist();renderAll();
  if(again&&!EDIT){['code','amount','det','inv','sup','buyer'].forEach(k=>$('e_'+k).value='');{const nc=nextCode();$('nxB').dataset.c=nc;$('nxB').textContent='التالي: '+nc}codeChk();amtChg();setTimeout(()=>$('e_code').focus(),50);return}
  closeM('md')}
-async function delE(){if(BUSY)return;const by=$('e_by').value.trim();if(!by){$('e_by').focus();return toast('اكتب اسمك قبل الحذف')}if(!confirm('حذف هذه الحركة؟'))return;
+async function delE(){if(BUSY)return;const by=$('e_by').value.trim();if(by.length<2){$('e_by').focus();return toast('✍️ اكتب اسمك قبل الحذف')}if(!confirm('حذف هذه الحركة؟'))return;
  const at=now();busy(1);let r=await sb.from('qasa_deleted').upsert({id:EDIT.id,data:toRow(EDIT),del_by:by,del_at:at});if(!r.error)r=await sb.from('qasa_entries').delete().eq('id',EDIT.id);busy(0);if(r.error)return dbErr(r.error);
  DEL.unshift({...EDIT,delBy:by,delAt:at});D=D.filter(e=>e!==EDIT);localStorage.setItem(K.u,by);closeM('md');renderAll();toast('تم الحذف باسم '+by)}
 
