@@ -138,6 +138,10 @@ h4 small{color:var(--mut);font-weight:700}
 .toast.on{transform:translate(-50%,0)}
 .srch{position:relative}
 #pa{display:none}
+.amt-ajl{color:#b45309}
+tr.ajr td{background:#fff7e8!important}
+.ajlbox{display:flex;align-items:center;gap:8px;margin-top:10px;padding:11px 12px;border:1.5px solid #f8dca4;background:#fffaf0;border-radius:12px;font-size:13.5px;color:#7c4a03;cursor:pointer}
+.ajlbox input{width:20px;height:20px;accent-color:#d97706}
 #login,#loading{position:fixed;inset:0;z-index:60;background:#374151;display:none;align-items:center;justify-content:center;padding:20px}
 #login.on,#loading.on{display:flex}
 .lbox{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:380px}
@@ -258,12 +262,12 @@ tr.day .dd span{font-weight:700;color:#1b53bf}tr.day .dd b{font-variant-numeric:
    <div id="mt_mv"></div><div class="per" id="per_mv"></div>
    <div class="sbar"><input id="q" placeholder="🔍 بحث: كود، تفاصيل، مبلغ، مورد..."><button class="btn l" onclick="$('advF').classList.toggle('on')">⚙ فلترة</button></div>
    <div class="adv" id="advF">
-    <select id="fT"><option value="">كل الحركات</option><option value="in">الداخل فقط</option><option value="out">الخارج فقط</option></select>
+    <select id="fT"><option value="">كل الحركات</option><option value="in">المقبوضات (نقد)</option><option value="out">المدفوعات (نقد)</option><option value="ajl">الآجل فقط</option></select>
     <select id="fP"></select><select id="fS"></select><select id="fU"></select>
    </div>
   </div>
   <div id="onlyMv"></div>
-  <div class="tbl"><table><thead><tr><th>التاريخ</th><th>مدفوعات</th><th>مقبوضات</th><th>رقم الفاتورة</th><th>الكود</th><th>التفاصيل</th><th>اسم المشتري</th><th>اسم المورد</th><th>المشروع</th><th>المصدر</th><th>الرصيد</th></tr></thead><tbody id="mvB"></tbody><tfoot id="mvF"></tfoot></table></div>
+  <div class="tbl"><table><thead><tr><th>التاريخ</th><th>مدفوعات</th><th>مقبوضات</th><th>آجل</th><th>رقم الفاتورة</th><th>الكود</th><th>التفاصيل</th><th>اسم المشتري</th><th>اسم المورد</th><th>المشروع</th><th>المصدر</th><th>الرصيد</th></tr></thead><tbody id="mvB"></tbody><tfoot id="mvF"></tfoot></table></div>
   <div id="mvSum"></div>
  </section>
 
@@ -278,7 +282,7 @@ tr.day .dd span{font-weight:700;color:#1b53bf}tr.day .dd b{font-variant-numeric:
    <div id="pjHead"></div>
    <div class="card"><div id="mt_pj"></div><div class="per" id="per_pj"></div><input id="pjq" style="margin-top:10px" placeholder="🔍 بحث داخل المشروع..."></div>
    <div id="onlyPj"></div>
-   <div class="tbl"><table><thead><tr><th>التاريخ</th><th>مدفوعات</th><th>مقبوضات</th><th>رقم الفاتورة</th><th>الكود</th><th>التفاصيل</th><th>اسم المشتري</th><th>اسم المورد</th><th>المصدر</th><th>صافي المصروف التراكمي</th></tr></thead><tbody id="pjB"></tbody><tfoot id="pjF"></tfoot></table></div>
+   <div class="tbl"><table><thead><tr><th>التاريخ</th><th>مدفوعات</th><th>مقبوضات</th><th>آجل</th><th>رقم الفاتورة</th><th>الكود</th><th>التفاصيل</th><th>اسم المشتري</th><th>اسم المورد</th><th>المصدر</th><th>صافي المصروف التراكمي</th></tr></thead><tbody id="pjB"></tbody><tfoot id="pjF"></tfoot></table></div>
    <div id="pjSum"></div>
   </div>
  </section>
@@ -323,6 +327,8 @@ tr.day .dd span{font-weight:700;color:#1b53bf}tr.day .dd b{font-variant-numeric:
  <label>كود العملية (يدوي) *</label>
  <div style="display:flex;gap:6px"><input id="e_code" placeholder="اكتب كود العملية" autocomplete="off" style="font-weight:800;letter-spacing:.5px"><button type="button" class="btn l" id="nxB" onclick="$('e_code').value=this.dataset.c;codeChk()" style="white-space:nowrap"></button></div>
  <div class="warn" id="codeW"></div>
+ <label class="ajlbox"><input type="checkbox" id="e_ajl" onchange="amtChg()"><span><b>آجل</b> — لم يُدفع بعد (لا يُحسب من رصيد القاصة)</span></label>
+ <button type="button" class="btn gr sm" id="payB" style="margin-top:8px;display:none" onclick="markPaid()">✓ تم الدفع — حوّلها نقد بتاريخ اليوم</button>
  <label>المبلغ (دينار)</label><input id="e_amount" class="amt" inputmode="numeric" placeholder="0">
  <div class="aw" id="aw"></div>
  <div class="qa"><button type="button" class="btn l sm" onclick="addZ()">+ 000</button><button type="button" class="btn l sm" onclick="$('e_amount').value='';amtChg()">مسح</button></div>
@@ -358,7 +364,7 @@ tr.day .dd span{font-weight:700;color:#1b53bf}tr.day .dd b{font-variant-numeric:
 <script>
 const FIX=[{n:'تأسيس',i:'🏗️'},{n:'سلفة',i:'💵'},{n:'خدمات',i:'🧰'},{n:'كاز',i:'⛽'},{n:'راتب',i:'👥'}],FIXN=FIX.map(x=>x.n);
 const MAP={'ش':'تأسيس','رواتب':'راتب','رواتب ':'راتب','تاسيس':'تأسيس','قياس':'قياسات'};
-const LBL={code:'كود العملية',type:'النوع',date:'التاريخ',amount:'المبلغ',prj:'المشروع',det:'التفاصيل',src:'المصدر',sup:'المورد',buyer:'المشتري',inv:'رقم الفاتورة'};
+const LBL={code:'كود العملية',type:'النوع',ajl:'آجل',date:'التاريخ',amount:'المبلغ',prj:'المشروع',det:'التفاصيل',src:'المصدر',sup:'المورد',buyer:'المشتري',inv:'رقم الفاتورة'};
 const K={d:'qasa2_d',p:'qasa2_p',s:'qasa2_s',l:'qasa2_del',u:'qasa2_user'};
 const $=s=>document.getElementById(s);
 const fmt=n=>(Math.round(n)||0).toLocaleString('en-US');
@@ -374,8 +380,8 @@ function ld(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d}cat
 
 let D=[],P={},SRC=['رصيد مدور','أبو ادم','ادم كروب','علاء','اسلام','عمو أنور','زبائن'],DEL=[],CUR=null,EDIT=null,PMEDIT=null,TYPE='out',BUSY=false;
 const sb=window.supabase.createClient('https://haymoobohitphxpmkumj.supabase.co','sb_publishable_cl2vWRbMJjEeBy8OI3yXMA_5O9-oADL',{auth:{persistSession:true,storageKey:'qasa-auth',autoRefreshToken:true}});
-const COLS='id,code,type,date,amount,inv,det,buyer,sup,prj,src,created,edits';
-const toRow=e=>({id:e.id,code:e.code||'',type:e.type,date:e.date,amount:e.amount,inv:e.inv||'',det:e.det||'',buyer:e.buyer||'',sup:e.sup||'',prj:e.prj||'',src:e.src||'',created:e.created||'',edits:e.edits||[]});
+const COLS='id,code,type,date,amount,inv,det,buyer,sup,prj,src,created,edits,ajl';
+const toRow=e=>({id:e.id,code:e.code||'',type:e.type,date:e.date,amount:e.amount,inv:e.inv||'',det:e.det||'',buyer:e.buyer||'',sup:e.sup||'',prj:e.prj||'',src:e.src||'',created:e.created||'',edits:e.edits||[],ajl:!!e.ajl});
 const fromRow=r=>({...r,amount:Number(r.amount),edits:Array.isArray(r.edits)?r.edits:[]});
 function dbErr(e){const m=e&&/fetch|network|Load failed/i.test(e.message||'')?'تعذر الاتصال بالإنترنت — تأكد من الاتصال وحاول مرة ثانية':e&&e.code=='23505'?'كود العملية مكرر — مستخدم لحركة أخرى':e&&/JWT|session|auth/i.test(e.message||'')?'انتهت الجلسة، سجّل دخول مرة ثانية':(e&&e.message)||'تعذر الاتصال بالإنترنت';alert('⛔ لم يتم الحفظ\n'+m);return false}
 function busy(on,txt){BUSY=on;$('loading').textContent=txt||'⏳ جاري الحفظ...';$('loading').classList.toggle('on',!!on)}
@@ -405,8 +411,10 @@ function countUp(el,v){el.dataset.v=v;el.textContent=fmt(v)}
 function uniq(k){return[...new Set(D.map(e=>(e[k]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'))}
 function prjNames(){return[...FIXN,...Object.keys(P).sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}))]}
 /* دفتر مرتب مع الرصيد */
-function ledger(){let run=0;return D.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?-1:a.e.date>b.e.date?1:a.i-b.i).map(x=>{run+=x.e.type=='in'?x.e.amount:-x.e.amount;return{e:x.e,bal:run}})}
-const sumT=(L,t)=>L.reduce((s,e)=>s+((e.e||e).type==t?(e.e||e).amount:0),0);
+const sg=e=>e.ajl?0:(e.type=='in'?e.amount:-e.amount);
+const sumA=L=>L.reduce((s,e)=>s+((e.e||e).ajl?(e.e||e).amount:0),0);
+function ledger(){let run=0;return D.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?-1:a.e.date>b.e.date?1:a.i-b.i).map(x=>{run+=sg(x.e);return{e:x.e,bal:run}})}
+const sumT=(L,t)=>L.reduce((s,e)=>s+((e.e||e).type==t&&!(e.e||e).ajl?(e.e||e).amount:0),0);
 
 /* ===== الفترات ===== */
 const PR={mv:{m:'all',a:'',b:''},pj:{m:'all',a:'',b:''},rp:{m:'all',a:'',b:''}};
@@ -451,14 +459,14 @@ function fillSel(id,first,arr){const s=$(id),v=s.value;s.innerHTML=`<option valu
 function lists(){const S=[...new Set([...SRC,...uniq('src')])];fillSel('fP','كل المشاريع',[...prjNames(),...(D.some(e=>!e.prj)?['— بدون مشروع —']:[])]);fillSel('fS','كل المصادر',S);fillSel('fU','كل الموردين',uniq('sup'));
  const dl=(id,a)=>$(id).innerHTML=a.map(x=>`<option value="${esc(x)}">`).join('');dl('dlS',S);dl('dlB',uniq('buyer'));dl('dlU',uniq('sup'));dl('dlP',Object.keys(P));dl('dlC',[...new Set(Object.values(P).map(x=>x.co).filter(Boolean))])}
 let ONLY=null;
-function onlyIds(k){if(k=='nc')return D.filter(e=>!normC(e.code)).map(e=>e.id);if(k=='np')return D.filter(e=>!e.prj).map(e=>e.id);if(k=='ns')return D.filter(e=>e.type=='in'&&!e.src).map(e=>e.id);
- if(k=='ni')return D.filter(e=>e.type=='out'&&!String(e.inv||'').trim()).map(e=>e.id);if(k=='neg')return ledger().filter(x=>x.bal<0).map(x=>x.e.id);if(k=='dp')return dupIds();
+function onlyIds(k){if(k=='aj')return D.filter(e=>e.ajl).map(e=>e.id);if(k=='nc')return D.filter(e=>!normC(e.code)).map(e=>e.id);if(k=='np')return D.filter(e=>!e.prj).map(e=>e.id);if(k=='ns')return D.filter(e=>e.type=='in'&&!e.src).map(e=>e.id);
+ if(k=='ni')return D.filter(e=>e.type=='out'&&!e.ajl&&!String(e.inv||'').trim()).map(e=>e.id);if(k=='neg')return ledger().filter(x=>x.bal<0).map(x=>x.e.id);if(k=='dp')return dupIds();
  if(k=='dc'){const m={};D.forEach(e=>{const c=normC(e.code);if(c)(m[c]=m[c]||[]).push(e.id)});return Object.values(m).filter(a=>a.length>1).flat()}return[]}
-const ALT={nc:'حركة بدون كود',np:'حركة بدون مشروع',ns:'مقبوض بدون مصدر',ni:'مدفوع بدون رقم فاتورة',neg:'حركة صار بعدها رصيد القاصة بالسالب',dp:'حركة مكررة محتملة (نفس التاريخ والمبلغ والتفاصيل)',dc:'حركة بكود مكرر'};
+const ALT={aj:'حركة آجلة غير مدفوعة',nc:'حركة بدون كود',np:'حركة بدون مشروع',ns:'مقبوض بدون مصدر',ni:'مدفوع بدون رقم فاتورة',neg:'حركة صار بعدها رصيد القاصة بالسالب',dp:'حركة مكررة محتملة (نفس التاريخ والمبلغ والتفاصيل)',dc:'حركة بكود مكرر'};
 function setOnly(k){ONLY=k?{k,ids:new Set(onlyIds(k))}:null;CUR?rPj():rMv();window.scrollTo({top:0})}
 function onlyBar(){return ONLY?`<div class="onlyb">🔎 معروض فقط: ${ALT[ONLY.k]} <button class="btn sm" style="margin-right:auto" onclick="setOnly()">✕ عرض الكل</button></div>`:''}
 function alerts(R,pj){const L=R.map(x=>x.e),ids=new Set(L.map(e=>e.id)),c=k=>onlyIds(k).filter(i=>ids.has(i)).length;
- const lv={dc:'bad',dp:'bad',neg:'bad',nc:'warn',np:'warn',ns:'warn',ni:'info'},keys=pj?['dc','dp','nc','ns','ni']:['dc','dp','neg','nc','np','ns','ni'];
+ const lv={dc:'bad',dp:'bad',neg:'bad',aj:'warn',nc:'warn',np:'warn',ns:'warn',ni:'info'},keys=pj?['dc','dp','aj','nc','ns','ni']:['dc','dp','neg','aj','nc','np','ns','ni'];
  const tin=sumT(D,'in'),tout=sumT(D,'out'),lg=ledger(),bal=lg.length?lg[lg.length-1].bal:0;let pi=0,po=0;D.forEach(e=>{e.type=='in'?pi+=e.amount:po+=e.amount});
  const okT=tin-tout===bal&&D.every(e=>Number.isSafeInteger(e.amount)&&e.amount>0);
  const list=keys.map(k=>({k,n:c(k),l:lv[k]})).filter(x=>x.n);
@@ -470,26 +478,26 @@ function alertHTML(a){return`<div class="card"><h4>⚠️ التنبيهات<sma
 function dupIds(){const m={},s=new Set();D.forEach(e=>{const k=[e.date,e.type,e.amount,(e.det||'').trim()].join('|');(m[k]=m[k]||[]).push(e.id)});Object.values(m).forEach(a=>{if(a.length>1)a.forEach(i=>s.add(i))});return[...s]}
 function rAudit(){}
 function mvRows(){const p=PR.mv,q=$('q').value.trim(),T=$('fT').value,Pp=$('fP').value,S=$('fS').value,U=$('fU').value;
- return ledger().filter(({e})=>(!ONLY||ONLY.ids.has(e.id))&&inP(e,p)&&(!T||e.type==T)&&(!Pp||(Pp=='— بدون مشروع —'?!e.prj:e.prj==Pp))&&(!S||e.src==S)&&(!U||e.sup==U)&&(!q||[e.code,e.det,e.inv,e.buyer,e.sup,e.prj,e.src,e.amount,(P[e.prj]||{}).co].join(' ').includes(q)))}
+ return ledger().filter(({e})=>(!ONLY||ONLY.ids.has(e.id))&&inP(e,p)&&(!T||(T=='ajl'?e.ajl:(e.type==T&&!e.ajl)))&&(!Pp||(Pp=='— بدون مشروع —'?!e.prj:e.prj==Pp))&&(!S||e.src==S)&&(!U||e.sup==U)&&(!q||[e.code,e.det,e.inv,e.buyer,e.sup,e.prj,e.src,e.amount,(P[e.prj]||{}).co].join(' ').includes(q)))}
 const WD=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 function wday(s){const[y,m,d]=s.split('-').map(Number);return WD[new Date(y,m-1,d).getDay()]}
 function dayRow(dt,d,cols,isBal){return`<tr class="day"><td colspan="${cols}"><div class="dd">📅 ${dt} <span>${wday(dt)}</span>${d.i?`<span>داخل <b class="g">${fmt(d.i)}</b></span>`:''}${d.o?`<span>خارج <b class="r">${fmt(d.o)}</b></span>`:''}<span>${d.n} حركة</span><span>${isBal?'رصيد نهاية اليوم':'التراكمي'} <b style="color:#18181b">${fmt(d.b)}</b></span></div></td></tr>`}
 function detCell(e,sp){const m=[];if(sp&&e.prj)m.push('<span class="so">📁 '+esc(e.prj)+'</span>');if(e.sup)m.push('🚚 '+esc(e.sup));if(e.src)m.push('💰 '+esc(e.src));if(e.buyer)m.push('👤 '+esc(e.buyer));if(e.inv)m.push('🧾 فاتورة '+esc(e.inv));if(e.edits&&e.edits.length)m.push('<span class="ed">✎ '+esc(e.edits.at(-1).by)+'</span>');
  return`<td class="det"><div class="dt1">${esc(e.det)||'<span style="color:#bbb">—</span>'}</div>${m.length?`<div class="dt2">${m.join(' &nbsp;·&nbsp; ')}</div>`:''}</td>`}
 const td=(v,c)=>`<td${c?` class="${c}"`:''}>${v}</td>`;
-function mvTR(e,bal){return`<tr onclick="openF(null,'${e.id}')">${td(e.date)}${td(e.type=='out'?fmt(e.amount):'','n amt-out')}${td(e.type=='in'?fmt(e.amount):'','n amt-in')}${td(esc(e.inv))}${td(`<span class="cd">${esc(e.code||'')}</span>`)}<td class="det">${esc(e.det)}${e.edits&&e.edits.length?` <span class="ed">✎ عدّلها ${esc(e.edits.at(-1).by)} · ${esc(e.edits.at(-1).at)}${e.edits.length>1?' ('+e.edits.length+' تعديلات)':''}</span>`:''}</td>${td(esc(e.buyer),'wr')}${td(esc(e.sup),'wr')}`}
-function prjSum(L){const m={};L.forEach(e=>{const k=e.prj||'بدون مشروع';m[k]=m[k]||{i:0,o:0,n:0};m[k][e.type=='in'?'i':'o']+=e.amount;m[k].n++});return Object.entries(m).sort((a,b)=>b[1].o-a[1].o)}
+function mvTR(e,bal){return`<tr${e.ajl?' class="ajr"':''} onclick="openF(null,'${e.id}')">${td(e.date)}${td(e.type=='out'&&!e.ajl?fmt(e.amount):'','n amt-out')}${td(e.type=='in'&&!e.ajl?fmt(e.amount):'','n amt-in')}${td(e.ajl?fmt(e.amount)+(e.type=='in'?' <small>(لنا)</small>':''):'','n amt-ajl')}${td(esc(e.inv))}${td(`<span class="cd">${esc(e.code||'')}</span>`)}<td class="det">${esc(e.det)}${e.edits&&e.edits.length?` <span class="ed">✎ عدّلها ${esc(e.edits.at(-1).by)} · ${esc(e.edits.at(-1).at)}${e.edits.length>1?' ('+e.edits.length+' تعديلات)':''}</span>`:''}</td>${td(esc(e.buyer),'wr')}${td(esc(e.sup),'wr')}`}
+function prjSum(L){const m={};L.forEach(e=>{const k=e.prj||'بدون مشروع';m[k]=m[k]||{i:0,o:0,a:0,n:0};m[k][e.ajl?'a':e.type=='in'?'i':'o']+=e.amount;m[k].n++});return Object.entries(m).sort((a,b)=>b[1].o-a[1].o)}
 function kvT(rows){return`<table class="kv">${rows.map(([k,v,c])=>`<tr><td>${k}</td><td class="${c||''}">${typeof v=='number'?fmt(v):esc(v)}</td></tr>`).join('')}</table>`}
-function mvTotals(R){const p=PR.mv,lg=ledger(),open=p.a?lg.filter(x=>x.e.date<p.a).reduce((s,x)=>s+(x.e.type=='in'?x.e.amount:-x.e.amount),0):0,inPer=lg.filter(x=>inP(x.e,p)),close=open+sumT(inPer,'in')-sumT(inPer,'out');
- return{open,close,si:sumT(R,'in'),so:sumT(R,'out'),n:R.length,filt:R.length!=inPer.length}}
+function mvTotals(R){const p=PR.mv,lg=ledger(),open=p.a?lg.filter(x=>x.e.date<p.a).reduce((s,x)=>s+sg(x.e),0):0,inPer=lg.filter(x=>inP(x.e,p)),close=open+sumT(inPer,'in')-sumT(inPer,'out');
+ return{open,close,si:sumT(R,'in'),so:sumT(R,'out'),aj:sumA(R),n:R.length,filt:R.length!=inPer.length}}
 function rMv(){const all=ledger(),bal=all.length?all[all.length-1].bal:0;$('hBal').textContent=fmt(bal);
  const R=mvRows(),T=mvTotals(R);$('onlyMv').innerHTML=onlyBar();
- const carry=PR.mv.a?`<tr class="carry"><td>${PR.mv.a}</td><td colspan="9">رصيد مدور من قبل ${PR.mv.a}</td><td class="n">${fmt(T.open)}</td></tr>`:'';
- $('mvB').innerHTML=carry+R.map(({e,bal})=>mvTR(e,bal)+td(e.prj?`<span class="tag">${esc(e.prj)}</span>`:'','wr')+td(e.src?esc(e.src):'','wr')+td(fmt(bal),'n bal')+'</tr>').join('')||'<tr><td colspan="11" class="empty">لا توجد حركات في هذه الفترة</td></tr>';
- $('mvF').innerHTML=R.length?`<tr><td>المجموع</td><td class="n amt-out">${fmt(T.so)}</td><td class="n amt-in">${fmt(T.si)}</td><td colspan="8">الصافي: ${fmt(T.si-T.so)} &nbsp;—&nbsp; ${T.n} حركة</td></tr>`:'';
+ const carry=PR.mv.a?`<tr class="carry"><td>${PR.mv.a}</td><td colspan="10">رصيد مدور من قبل ${PR.mv.a}</td><td class="n">${fmt(T.open)}</td></tr>`:'';
+ $('mvB').innerHTML=carry+R.map(({e,bal})=>mvTR(e,bal)+td(e.prj?`<span class="tag">${esc(e.prj)}</span>`:'','wr')+td(e.src?esc(e.src):'','wr')+td(fmt(bal),'n bal')+'</tr>').join('')||'<tr><td colspan="12" class="empty">لا توجد حركات في هذه الفترة</td></tr>';
+ $('mvF').innerHTML=R.length?`<tr><td>المجموع</td><td class="n amt-out">${fmt(T.so)}</td><td class="n amt-in">${fmt(T.si)}</td><td class="n amt-ajl">${fmt(T.aj)}</td><td colspan="8">الصافي: ${fmt(T.si-T.so)} &nbsp;—&nbsp; ${T.n} حركة</td></tr>`:'';
  const ps=prjSum(R.map(x=>x.e));
- $('mvSum').innerHTML=`<div class="sumg"><div class="card"><h4>📋 الملخص<small>${esc(perTxt(PR.mv))}</small></h4>${kvT([['رصيد القاصة أول الفترة',T.open],['المقبوضات',T.si,'g'],['المدفوعات',T.so,'r'],['الصافي',T.si-T.so],['رصيد القاصة آخر الفترة',T.close],['عدد الحركات',T.n]])}${T.filt?'<small style="color:var(--mut)">* المقبوضات والمدفوعات حسب الفلتر المختار</small>':''}</div>
- <div class="card"><h4>📁 ملخص المشاريع<small>${ps.length} مشروع</small></h4><div class="tbl" style="box-shadow:none;max-height:420px"><table class="rt"><thead><tr><th>المشروع</th><th>مدفوعات</th><th>مقبوضات</th><th>الصافي</th><th>الحركات</th></tr></thead><tbody>${ps.map(([k,v])=>`<tr data-n="${esc(k=='بدون مشروع'?'__none':k)}" onclick="go('pj');openPj(this.dataset.n)"><td><b>${esc(k)}</b></td><td class="n amt-out">${fmt(v.o)}</td><td class="n amt-in">${v.i?fmt(v.i):''}</td><td class="n">${fmt(v.o-v.i)}</td><td class="n">${v.n}</td></tr>`).join('')}</tbody><tfoot><tr><td>المجموع</td><td class="n">${fmt(T.so)}</td><td class="n">${fmt(T.si)}</td><td class="n">${fmt(T.so-T.si)}</td><td class="n">${T.n}</td></tr></tfoot></table></div></div>
+ $('mvSum').innerHTML=`<div class="sumg"><div class="card"><h4>📋 الملخص<small>${esc(perTxt(PR.mv))}</small></h4>${kvT([['رصيد القاصة أول الفترة',T.open],['المقبوضات',T.si,'g'],['المدفوعات',T.so,'r'],['الصافي',T.si-T.so],['رصيد القاصة آخر الفترة',T.close],['الآجل (غير مدفوع — خارج الرصيد)',T.aj,'amt-ajl'],['عدد الحركات',T.n]])}${T.filt?'<small style="color:var(--mut)">* المقبوضات والمدفوعات حسب الفلتر المختار</small>':''}</div>
+ <div class="card"><h4>📁 ملخص المشاريع<small>${ps.length} مشروع</small></h4><div class="tbl" style="box-shadow:none;max-height:420px"><table class="rt"><thead><tr><th>المشروع</th><th>مدفوعات</th><th>مقبوضات</th><th>آجل</th><th>الصافي</th><th>الحركات</th></tr></thead><tbody>${ps.map(([k,v])=>`<tr data-n="${esc(k=='بدون مشروع'?'__none':k)}" onclick="go('pj');openPj(this.dataset.n)"><td><b>${esc(k)}</b></td><td class="n amt-out">${fmt(v.o)}</td><td class="n amt-in">${v.i?fmt(v.i):''}</td><td class="n amt-ajl">${v.a?fmt(v.a):''}</td><td class="n">${fmt(v.o-v.i)}</td><td class="n">${v.n}</td></tr>`).join('')}</tbody><tfoot><tr><td>المجموع</td><td class="n">${fmt(T.so)}</td><td class="n">${fmt(T.si)}</td><td class="n">${fmt(T.aj)}</td><td class="n">${fmt(T.so-T.si)}</td><td class="n">${T.n}</td></tr></tfoot></table></div></div>
  ${alertHTML(alerts(R,0))}</div>`}
 ['q','fT','fP','fS','fU'].forEach(i=>$(i).addEventListener('input',rMv));
 
@@ -505,16 +513,16 @@ $('pq').addEventListener('input',rPjList);
 function openPj(n){CUR=n;ONLY=null;$('pjList').style.display='none';$('pjView').style.display='';$('pjq').value='';$('pjView').style.animation='none';void $('pjView').offsetWidth;$('pjView').style.animation='fade .35s ease';rPj();window.scrollTo(0,0);sync()}
 function closePj(){CUR=null;ONLY=null;$('pjView').style.display='none';$('pjList').style.display='';rPjList();sync()}
 function pjRows(){const p=PR.pj,q=$('pjq').value.trim();let c=0;
- return ledger().filter(({e})=>CUR==='__none'?!e.prj:e.prj==CUR).map(x=>{c+=x.e.type=='out'?x.e.amount:-x.e.amount;return{e:x.e,cum:c}}).filter(({e})=>(!ONLY||ONLY.ids.has(e.id))&&inP(e,p)&&(!q||[e.code,e.det,e.inv,e.buyer,e.sup,e.src,e.amount].join(' ').includes(q)))}
+ return ledger().filter(({e})=>CUR==='__none'?!e.prj:e.prj==CUR).map(x=>{c-=sg(x.e);return{e:x.e,cum:c}}).filter(({e})=>(!ONLY||ONLY.ids.has(e.id))&&inP(e,p)&&(!q||[e.code,e.det,e.inv,e.buyer,e.sup,e.src,e.amount].join(' ').includes(q)))}
 function pjInfo(R){const L=R.map(x=>x.e),si=sumT(L,'in'),so=sumT(L,'out'),ds=L.map(e=>e.date).sort(),info=P[CUR]||{};
- return{si,so,n:L.length,first:ds[0]||'—',last:ds[ds.length-1]||'—',co:info.co||'—',det:info.det||'—',sup:grp(L.filter(e=>e.type=='out'&&e.sup),e=>e.sup)}}
+ return{si,so,n:L.length,first:ds[0]||'—',last:ds[ds.length-1]||'—',co:info.co||'—',det:info.det||'—',sup:grp(L.filter(e=>e.type=='out'&&!e.ajl&&e.sup),e=>e.sup),aj:sumA(L)}}
 function rPj(){if(!CUR)return;const fx=FIXN.includes(CUR),info=P[CUR]||{},nm=CUR=='__none'?'بدون مشروع':CUR;
  $('pjHead').innerHTML=`<div class="phead"><div class="ic">${fx?icon(CUR):'📁'}</div><div style="flex:1;min-width:0"><h2>${esc(nm)}</h2><p>${fx?'باب ثابت':CUR=='__none'?'حركات بدون مشروع — افتح أي حركة وحدد مشروعها':'🏢 '+esc(info.co||'لم تُحدد الشركة')}</p>${info.det?`<p style="margin-top:4px;color:#e5e7eb">${esc(info.det)}</p>`:''}</div>${!fx&&CUR!='__none'?`<button class="btn l sm" data-n="${esc(CUR)}" onclick="openPM(this.dataset.n)">✎ تعديل</button>`:''}</div>`;
  const R=pjRows(),I=pjInfo(R);$('onlyPj').innerHTML=onlyBar();
- const pb=PR.pj.a?ledger().filter(x=>(CUR==='__none'?!x.e.prj:x.e.prj==CUR)&&x.e.date<PR.pj.a).reduce((s,x)=>s+(x.e.type=='out'?x.e.amount:-x.e.amount),0):0;
- $('pjB').innerHTML=(PR.pj.a?`<tr class="carry"><td>${PR.pj.a}</td><td colspan="8">مرحّل من قبل ${PR.pj.a} (صافي المصروف السابق)</td><td class="n">${fmt(pb)}</td></tr>`:'')+R.map(({e,cum})=>mvTR(e)+td(e.src?esc(e.src):'','wr')+td(fmt(cum),'n bal')+'</tr>').join('')||'<tr><td colspan="10" class="empty">لا توجد حركات</td></tr>';
- $('pjF').innerHTML=R.length?`<tr><td>المجموع</td><td class="n amt-out">${fmt(I.so)}</td><td class="n amt-in">${fmt(I.si)}</td><td colspan="7">صافي المصروف: ${fmt(I.so-I.si)} &nbsp;—&nbsp; ${I.n} حركة</td></tr>`:'';
- $('pjSum').innerHTML=`<div class="sumg"><div class="card"><h4>📋 ملخص المشروع<small>${esc(perTxt(PR.pj))}</small></h4>${kvT([['المشروع',nm],['الشركة',I.co],['التفاصيل',I.det],['أول حركة',I.first],['آخر حركة',I.last],['المدفوعات',I.so,'r'],['المقبوضات',I.si,'g'],['صافي المصروف',I.so-I.si],['عدد الحركات',I.n]])}</div>
+ const pb=PR.pj.a?ledger().filter(x=>(CUR==='__none'?!x.e.prj:x.e.prj==CUR)&&x.e.date<PR.pj.a).reduce((s,x)=>s+(-sg(x.e)),0):0;
+ $('pjB').innerHTML=(PR.pj.a?`<tr class="carry"><td>${PR.pj.a}</td><td colspan="9">مرحّل من قبل ${PR.pj.a} (صافي المصروف السابق)</td><td class="n">${fmt(pb)}</td></tr>`:'')+R.map(({e,cum})=>mvTR(e)+td(e.src?esc(e.src):'','wr')+td(fmt(cum),'n bal')+'</tr>').join('')||'<tr><td colspan="11" class="empty">لا توجد حركات</td></tr>';
+ $('pjF').innerHTML=R.length?`<tr><td>المجموع</td><td class="n amt-out">${fmt(I.so)}</td><td class="n amt-in">${fmt(I.si)}</td><td class="n amt-ajl">${fmt(I.aj)}</td><td colspan="7">صافي المصروف: ${fmt(I.so-I.si)} &nbsp;—&nbsp; ${I.n} حركة</td></tr>`:'';
+ $('pjSum').innerHTML=`<div class="sumg"><div class="card"><h4>📋 ملخص المشروع<small>${esc(perTxt(PR.pj))}</small></h4>${kvT([['المشروع',nm],['الشركة',I.co],['التفاصيل',I.det],['أول حركة',I.first],['آخر حركة',I.last],['المدفوعات',I.so,'r'],['المقبوضات',I.si,'g'],['صافي المصروف',I.so-I.si],['الآجل (غير مدفوع)',I.aj,'amt-ajl'],['عدد الحركات',I.n]])}</div>
  <div class="card"><h4>🚚 المدفوعات حسب المورد<small>${I.sup.length} مورد</small></h4><div class="tbl" style="box-shadow:none;max-height:420px"><table class="rt"><thead><tr><th>المورد</th><th>المبلغ</th></tr></thead><tbody>${I.sup.map(([k,v])=>`<tr style="cursor:default"><td><b>${esc(k)}</b></td><td class="n amt-out">${fmt(v)}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">لا يوجد</td></tr>'}</tbody></table></div></div>
  ${alertHTML(alerts(R,1))}</div>`}
 $('pjq').addEventListener('input',rPj);
@@ -531,12 +539,12 @@ async function savePM(){if(BUSY)return;const n=$('p_name').value.trim();if(!n)re
 function grp(L,fn){const m={};L.forEach(e=>{const g=fn(e)||'بدون';m[g]=(m[g]||0)+e.amount});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function box(t,arr,c){const mx=Math.max(1,...arr.map(x=>x[1])),tot=arr.reduce((s,x)=>s+x[1],0);
  return`<div class="card"><h4>${t}<small>${fmt(tot)}</small></h4>${arr.map(([k,v])=>`<div class="li"><div class="t"><span>${icon(k)||''} ${esc(k)}</span><b class="n ${c}">${fmt(v)} <small style="color:#aaa;font-weight:500">${tot?Math.round(v/tot*100):0}%</small></b></div><div class="bar ${c}i"><i data-w="${v/mx*100}"></i></div></div>`).join('')||'<p style="color:#aaa">لا يوجد</p>'}</div>`}
-function rpData(){const p=PR.rp,L=D.filter(e=>inP(e,p)),I=L.filter(e=>e.type=='in'),O=L.filter(e=>e.type=='out');
- const open=p.a?D.filter(e=>e.date<p.a).reduce((s,e)=>s+(e.type=='in'?e.amount:-e.amount),0):0;
+function rpData(){const p=PR.rp,L=D.filter(e=>inP(e,p)),I=L.filter(e=>e.type=='in'&&!e.ajl),O=L.filter(e=>e.type=='out'&&!e.ajl);
+ const open=p.a?D.filter(e=>e.date<p.a).reduce((s,e)=>s+sg(e),0):0;
  const prj={};L.forEach(e=>{const k=e.prj||'بدون مشروع';prj[k]=prj[k]||{i:0,o:0,n:0};prj[k][e.type=='in'?'i':'o']+=e.amount;prj[k].n++});
  return{L,I,O,open,si:sumT(I,'in'),so:sumT(O,'out'),prj:Object.entries(prj).sort((a,b)=>b[1].o-a[1].o)}}
 function rTable(head,rows,foot,cls){return`<div class="tbl" style="box-shadow:none;max-height:none"><table class="rt"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${head.length}" class="empty">لا يوجد</td></tr>`}</tbody>${foot?`<tfoot><tr>${foot.map(v=>`<td class="n">${v}</td>`).join('')}</tr></tfoot>`:''}</table></div>`}
-function daily(L){const m={};L.forEach(e=>{m[e.date]=m[e.date]||[0,0];m[e.date][e.type=='in'?0:1]+=e.amount});return Object.keys(m).sort().map(k=>[k,m[k][0],m[k][1]])}
+function daily(L){const m={};L.forEach(e=>{if(e.ajl)return;m[e.date]=m[e.date]||[0,0];m[e.date][e.type=='in'?0:1]+=e.amount});return Object.keys(m).sort().map(k=>[k,m[k][0],m[k][1]])}
 function rRp(){const r=rpData();
  $('rpK').innerHTML=kpi('رصيد أول المدة',r.open)+kpi('الداخل',r.si,'g',0,'var(--in)')+kpi('الخارج',r.so,'r',0,'var(--out)')+kpi('رصيد آخر المدة',r.open+r.si-r.so,'',1);animK('rpK');
  const pj=r.prj.map(([k,v])=>`<tr data-n="${esc(k=='بدون مشروع'?'__none':k)}" onclick="go('pj');openPj(this.dataset.n)"><td><b>${icon(k)||''} ${esc(k)}</b>${(P[k]||{}).co?`<div class="dt2">${esc(P[k].co)}</div>`:''}</td><td class="n"><span class="hm">${v.n}</span></td><td class="n amt-out">${fmt(v.o)}</td><td class="n amt-in">${v.i?fmt(v.i):''}</td><td class="n bal">${fmt(v.o-v.i)}</td></tr>`);
@@ -559,8 +567,9 @@ function chipsSrc(){const v=$('e_src').value;$('srcChips').innerHTML=SRC.map(s=>
 $('e_src').addEventListener('input',chipsSrc);
 $('e_amount').addEventListener('input',function(){const v=num(this.value);this.value=v?v.toLocaleString('en-US'):'';amtChg()});
 function addZ(){const v=num($('e_amount').value);$('e_amount').value=v?(v*1000).toLocaleString('en-US'):'';amtChg();$('e_amount').focus()}
+function markPaid(){$('e_ajl').checked=false;$('e_date').value=today();amtChg();$('payB').style.display='none';$('e_by').focus();toast('✍️ اكتب اسمك واضغط حفظ')}
 function amtChg(){const v=num($('e_amount').value);$('aw').textContent=v?words(v)+' دينار':'';
- const L=ledger(),bal=L.length?L[L.length-1].bal:0,old=EDIT?(EDIT.type=='in'?EDIT.amount:-EDIT.amount):0,aft=bal-old+(TYPE=='in'?v:-v);
+ const L=ledger(),bal=L.length?L[L.length-1].bal:0,old=EDIT?sg(EDIT):0,aft=bal-old+($('e_ajl').checked?0:(TYPE=='in'?v:-v));
  $('bpNow').textContent=fmt(bal);$('bpAft').textContent=fmt(aft);$('bpAft').style.color=aft<0?'var(--out)':'var(--in)';dupChk()}
 function findDup(o){return D.find(x=>x!==EDIT&&x.type==o.type&&x.amount==o.amount&&x.date==o.date&&((x.det||'')==(o.det||'')||(o.inv&&x.inv==o.inv)))}
 function dupChk(){const o={type:TYPE,amount:num($('e_amount').value),date:$('e_date').value,det:$('e_det').value.trim(),inv:$('e_inv').value.trim()},d=o.amount&&findDup(o),w=$('dupW');
@@ -576,13 +585,13 @@ function words(n){const on=['','واحد','اثنان','ثلاثة','أربعة'
  if(!n)return'صفر';const g=[];let i=0;while(n>0&&i<4){g.push([n%1000,i]);n=Math.floor(n/1000);i++}
  return g.reverse().filter(x=>x[0]).map(([v,s])=>!s?w3(v):v==1?sc[s][0]:v==2?sc[s][1]:v<=10?w3(v)+' '+sc[s][2]:w3(v)+' '+sc[s][0]).join(' و')}
 function openF(t,id,prj){EDIT=id?D.find(e=>e.id==id):null;const e=EDIT||{type:t||'out',date:today(),amount:0,prj:prj&&prj!='__none'?prj:'',det:'',inv:'',sup:'',buyer:'',src:''};
- setType(e.type);['code','date','inv','det','sup','buyer','src','prj'].forEach(k=>$('e_'+k).value=e[k]||'');{const nc=nextCode();$('nxB').dataset.c=nc;$('nxB').textContent='التالي: '+nc;$('nxB').style.display=EDIT&&EDIT.code?'none':''}codeChk();$('e_amount').value=e.amount?fmt(e.amount):'';$('e_co').value='';prjChg();chipsSrc();
+ setType(e.type);['code','date','inv','det','sup','buyer','src','prj'].forEach(k=>$('e_'+k).value=e[k]||'');$('e_ajl').checked=!!e.ajl;$('payB').style.display=EDIT&&EDIT.ajl?'':'none';{const nc=nextCode();$('nxB').dataset.c=nc;$('nxB').textContent='التالي: '+nc;$('nxB').style.display=EDIT&&EDIT.code?'none':''}codeChk();$('e_amount').value=e.amount?fmt(e.amount):'';$('e_co').value='';prjChg();chipsSrc();
  $('mt').innerHTML=EDIT?'تعديل حركة '+(EDIT.code?'<span class="cd">'+esc(EDIT.code)+'</span>':''):'حركة جديدة';$('delB').style.display=EDIT?'':'none';$('againB').style.display=EDIT?'none':'';$('edBox').style.display=EDIT?'':'none';$('e_by').value='';
- const h=$('hist');if(EDIT&&EDIT.edits&&EDIT.edits.length){h.style.display='';h.innerHTML='<b>📝 سجل التعديلات</b>'+EDIT.edits.slice().reverse().map(x=>`<div><b>${esc(x.by)}</b> — <span style="color:#999">${esc(x.at)}</span><br>${x.ch.map(c=>`${LBL[c[0]]||c[0]}: <s style="color:#c55">${esc(c[0]=='amount'?fmt(c[1]):c[0]=='type'?(c[1]=='in'?'مقبوض':'مدفوع'):c[1])||'فارغ'}</s> ← <b style="color:#1a7">${esc(c[0]=='amount'?fmt(c[2]):c[0]=='type'?(c[2]=='in'?'مقبوض':'مدفوع'):c[2])||'فارغ'}</b>`).join('<br>')}</div>`).join('')}else h.style.display='none';
+ const h=$('hist');if(EDIT&&EDIT.edits&&EDIT.edits.length){h.style.display='';h.innerHTML='<b>📝 سجل التعديلات</b>'+EDIT.edits.slice().reverse().map(x=>`<div><b>${esc(x.by)}</b> — <span style="color:#999">${esc(x.at)}</span><br>${x.ch.map(c=>`${LBL[c[0]]||c[0]}: <s style="color:#c55">${esc(c[0]=='amount'?fmt(c[1]):c[0]=='type'?(c[1]=='in'?'مقبوض':'مدفوع'):c[0]=='ajl'?(c[1]?'آجل':'نقد'):c[1])||'فارغ'}</s> ← <b style="color:#1a7">${esc(c[0]=='amount'?fmt(c[2]):c[0]=='type'?(c[2]=='in'?'مقبوض':'مدفوع'):c[0]=='ajl'?(c[2]?'آجل':'نقد'):c[2])||'فارغ'}</b>`).join('<br>')}</div>`).join('')}else h.style.display='none';
  openM('md');amtChg();if(!EDIT)setTimeout(()=>$('e_code').focus(),350)}
 async function saveE(again){if(BUSY)return;const amount=num($('e_amount').value);if(!amount||amount<=0)return toast('أدخل المبلغ');if(!/^\d{4}-\d\d-\d\d$/.test($('e_date').value))return toast('أدخل التاريخ');
  const code=$('e_code').value.trim();if(!code&&!EDIT){$('e_code').focus();return toast('اكتب كود العملية')}if(code&&codeDup(code,EDIT)){$('e_code').focus();return toast('⛔ كود العملية مكرر')}
- const o={code,type:TYPE,date:$('e_date').value,amount};['inv','det','sup','buyer','src'].forEach(k=>o[k]=$('e_'+k).value.trim());o.prj=normPrj($('e_prj').value);if(o.type=='out')o.src='';
+ const o={code,type:TYPE,date:$('e_date').value,amount,ajl:$('e_ajl').checked};['inv','det','sup','buyer','src'].forEach(k=>o[k]=$('e_'+k).value.trim());o.prj=normPrj($('e_prj').value);if(o.type=='out')o.src='';
  if(findDup(o)&&!confirm('⚠️ توجد حركة مشابهة بنفس التاريخ والمبلغ.\nهل تريد الحفظ مع ذلك؟'))return;
  const co=$('e_co').value.trim();
  if(EDIT){const by=$('e_by').value.trim();if(by.length<2){$('e_by').focus();return toast('✍️ اكتب اسم المعدِّل قبل الحفظ')}
@@ -591,7 +600,7 @@ async function saveE(again){if(BUSY)return;const amount=num($('e_amount').value)
    localStorage.setItem(K.u,by);Object.assign(EDIT,nE)}
   toast(ch.length?'✓ تم التعديل باسم '+by:'لا توجد تغييرات')}
  else{const rec={...o,id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),created:now(),edits:[]};busy(1);const{error}=await sb.from('qasa_entries').insert(toRow(rec));busy(0);if(error)return dbErr(error);
-  D.push(rec);toast('✓ حُفظ '+(o.type=='in'?'مقبوض ':'مدفوع ')+fmt(amount)+' · كود '+o.code)}
+  D.push(rec);toast('✓ حُفظ '+(o.ajl?'آجل ':o.type=='in'?'مقبوض ':'مدفوع ')+fmt(amount)+' · كود '+o.code)}
  if(o.prj&&!FIXN.includes(o.prj)&&(!P[o.prj]||(co&&P[o.prj].co!==co))){P[o.prj]={...(P[o.prj]||{det:''}),co:co||(P[o.prj]||{}).co||''};sb.from('qasa_projects').upsert({name:o.prj,co:P[o.prj].co,det:P[o.prj].det||''}).then(()=>{})}
  persist();renderAll();
  if(again&&!EDIT){['code','amount','det','inv','sup','buyer'].forEach(k=>$('e_'+k).value='');{const nc=nextCode();$('nxB').dataset.c=nc;$('nxB').textContent='التالي: '+nc}codeChk();amtChg();setTimeout(()=>$('e_code').focus(),50);return}
@@ -626,22 +635,22 @@ function xl(fname,sheets){
   XLSX.utils.book_append_sheet(wb,ws,nm)});
  wb.Workbook={Views:[{RTL:true}]};XLSX.writeFile(wb,fname);toast('✓ تم تصدير Excel')}
 function dlF(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;document.body.appendChild(a);a.click();a.remove()}
-const MVH=['التاريخ','مدفوعات','مقبوضات','رقم الفاتورة','الكود','التفاصيل','اسم المشتري','اسم المورد','المشروع','المصدر','الرصيد'];
-const MVW=[12,14,14,13,12,46,14,16,16,14,15];
-function mvRow(e,bal){return[e.date,e.type=='out'?e.amount:'',e.type=='in'?e.amount:'',e.inv||'',e.code||'',e.det||'',e.buyer||'',e.sup||'',e.prj||'',e.src||'',bal]}
+const MVH=['التاريخ','مدفوعات','مقبوضات','آجل','رقم الفاتورة','الكود','التفاصيل','اسم المشتري','اسم المورد','المشروع','المصدر','الرصيد'];
+const MVW=[12,14,14,14,13,12,46,14,16,16,14,15];
+function mvRow(e,bal){return[e.date,e.type=='out'&&!e.ajl?e.amount:'',e.type=='in'&&!e.ajl?e.amount:'',e.ajl?e.amount:'',e.inv||'',e.code||'',e.det||'',e.buyer||'',e.sup||'',e.prj||'',e.src||'',bal]}
 function alertRows(R,pj){const a=alerts(R,pj);return[[a.okT?'✓ المجاميع مطابقة':'⛔ خلل بالمجاميع',''],...a.list.map(x=>[ALT[x.k],x.n])]}
 function mvSheet(R,title,per){const T=mvTotals(R),ps=prjSum(R.map(x=>x.e));
- return{name:'حركة الأموال',title,info:[['الفترة',per],['تاريخ التصدير',now()]],head:MVH,w:MVW,wrap:5,green:[2],red:[1],
- rows:[...(PR.mv.a?[[PR.mv.a,'','','','','رصيد مدور من الفترة السابقة','','','','',T.open]]:[]),...R.map(({e,bal})=>mvRow(e,bal))],foot:['المجموع',T.so,T.si,'','','الصافي: '+fmt(T.si-T.so)+' — '+T.n+' حركة','','','','',''],
- after:[{t:'الملخص',head:['البند','القيمة'],rows:[['رصيد القاصة أول الفترة',T.open],['المقبوضات',T.si],['المدفوعات',T.so],['الصافي',T.si-T.so],['رصيد القاصة آخر الفترة',T.close],['عدد الحركات',T.n]]},
-  {t:'ملخص المشاريع',head:['المشروع','مدفوعات','مقبوضات','الصافي','الحركات'],rows:ps.map(([k,v])=>[k,v.o,v.i,v.o-v.i,v.n]),foot:['المجموع',T.so,T.si,T.so-T.si,T.n]},
+ return{name:'حركة الأموال',title,info:[['الفترة',per],['تاريخ التصدير',now()]],head:MVH,w:MVW,wrap:6,green:[2],red:[1],
+ rows:[...(PR.mv.a?[[PR.mv.a,'','','','','','رصيد مدور من الفترة السابقة','','','','',T.open]]:[]),...R.map(({e,bal})=>mvRow(e,bal))],foot:['المجموع',T.so,T.si,T.aj,'','','الصافي: '+fmt(T.si-T.so)+' — '+T.n+' حركة','','','','',''],
+ after:[{t:'الملخص',head:['البند','القيمة'],rows:[['رصيد القاصة أول الفترة',T.open],['المقبوضات',T.si],['المدفوعات',T.so],['الصافي',T.si-T.so],['رصيد القاصة آخر الفترة',T.close],['الآجل (غير مدفوع — خارج الرصيد)',T.aj],['عدد الحركات',T.n]]},
+  {t:'ملخص المشاريع',head:['المشروع','مدفوعات','مقبوضات','آجل','الصافي','الحركات'],rows:ps.map(([k,v])=>[k,v.o,v.i,v.a,v.o-v.i,v.n]),foot:['المجموع',T.so,T.si,T.aj,T.so-T.si,T.n]},
   {t:'التنبيهات',head:['التنبيه','العدد'],rows:alertRows(R,0)}]}}
 function expMv(){xl('القاصة-'+(perTxt(PR.mv).replace(/\s+/g,'-'))+'.xlsx',[mvSheet(mvRows(),'القاصة — حركة الأموال',perTxt(PR.mv))])}
-const PJH=['التاريخ','مدفوعات','مقبوضات','رقم الفاتورة','الكود','التفاصيل','اسم المشتري','اسم المورد','المصدر','صافي المصروف التراكمي'];
+const PJH=['التاريخ','مدفوعات','مقبوضات','آجل','رقم الفاتورة','الكود','التفاصيل','اسم المشتري','اسم المورد','المصدر','صافي المصروف التراكمي'];
 function pjSheet(n,R,per){const sv=CUR;CUR=n;const I=pjInfo(R),al=alertRows(R,1);CUR=sv;const nm=n=='__none'?'بدون مشروع':n;
- return{name:nm,title:'المشروع: '+nm,info:[['الشركة',I.co],['الفترة',per]],head:PJH,w:[12,14,14,13,12,46,14,16,14,16],wrap:5,red:[1],green:[2],
- rows:R.map(({e,cum})=>[e.date,e.type=='out'?e.amount:'',e.type=='in'?e.amount:'',e.inv||'',e.code||'',e.det||'',e.buyer||'',e.sup||'',e.src||'',cum]),foot:['المجموع',I.so,I.si,'','','صافي المصروف: '+fmt(I.so-I.si)+' — '+I.n+' حركة','','','',''],
- after:[{t:'ملخص المشروع',head:['البند','القيمة'],rows:[['المشروع',nm],['الشركة',I.co],['التفاصيل',I.det],['أول حركة',I.first],['آخر حركة',I.last],['المدفوعات',I.so],['المقبوضات',I.si],['صافي المصروف',I.so-I.si],['عدد الحركات',I.n]]},
+ return{name:nm,title:'المشروع: '+nm,info:[['الشركة',I.co],['الفترة',per]],head:PJH,w:[12,14,14,14,13,12,46,14,16,14,16],wrap:6,red:[1],green:[2],
+ rows:R.map(({e,cum})=>[e.date,e.type=='out'&&!e.ajl?e.amount:'',e.type=='in'&&!e.ajl?e.amount:'',e.ajl?e.amount:'',e.inv||'',e.code||'',e.det||'',e.buyer||'',e.sup||'',e.src||'',cum]),foot:['المجموع',I.so,I.si,I.aj,'','','صافي المصروف: '+fmt(I.so-I.si)+' — '+I.n+' حركة','','','',''],
+ after:[{t:'ملخص المشروع',head:['البند','القيمة'],rows:[['المشروع',nm],['الشركة',I.co],['التفاصيل',I.det],['أول حركة',I.first],['آخر حركة',I.last],['المدفوعات',I.so],['المقبوضات',I.si],['صافي المصروف',I.so-I.si],['الآجل (غير مدفوع)',I.aj],['عدد الحركات',I.n]]},
   {t:'المدفوعات حسب المورد',head:['المورد','المبلغ'],rows:I.sup},{t:'التنبيهات',head:['التنبيه','العدد'],rows:al}]}}
 function expPj(){xl('مشروع-'+(CUR=='__none'?'بدون':CUR)+'-'+today()+'.xlsx',[pjSheet(CUR,pjRows(),perTxt(PR.pj))])}
 function expAllPj(){const save=CUR,names=[...FIXN,...Object.keys(P)].filter(n=>D.some(e=>e.prj==n));
@@ -650,8 +659,8 @@ function expAllPj(){const save=CUR,names=[...FIXN,...Object.keys(P)].filter(n=>D
  const sh=[sum,...names.map(n=>{CUR=n;const p=PR.pj;PR.pj={m:'all',a:'',b:''};$('pjq').value='';const r=pjSheet(n,pjRows(),'كل الفترات');PR.pj=p;return r})];CUR=save;
  xl('القاصة-كل-المشاريع-'+today()+'.xlsx',sh)}
 function expRp(){const r=rpData(),per=perTxt(PR.rp);let run=r.open;
- const mv={name:'الحركات',title:'حركة الأموال — '+per,info:[['رصيد أول المدة',r.open],['المقبوضات',r.si],['المدفوعات',r.so],['رصيد آخر المدة',r.open+r.si-r.so]],head:MVH,w:MVW,wrap:5,green:[2],red:[1],
-  rows:ledger().filter(x=>inP(x.e,PR.rp)).map(({e})=>{run+=e.type=='in'?e.amount:-e.amount;return mvRow(e,run)}),foot:['المجموع',r.so,r.si,'','','','','','','',r.open+r.si-r.so]};
+ const mv={name:'الحركات',title:'حركة الأموال — '+per,info:[['رصيد أول المدة',r.open],['المقبوضات',r.si],['المدفوعات',r.so],['رصيد آخر المدة',r.open+r.si-r.so]],head:MVH,w:MVW,wrap:6,green:[2],red:[1],
+  rows:ledger().filter(x=>inP(x.e,PR.rp)).map(({e})=>{run+=sg(e);return mvRow(e,run)}),foot:['المجموع',r.so,r.si,sumA(r.L),'','','','','','','',r.open+r.si-r.so]};
  const pj={name:'المشاريع',title:'ملخص المشاريع — '+per,head:['المشروع','الشركة','الحركات','المصروف','المقبوض','الصافي'],w:[20,24,10,16,16,16],red:[3],green:[4],rows:r.prj.map(([k,v])=>[k,(P[k]||{}).co||'',v.n,v.o,v.i,v.o-v.i]),foot:['المجموع','',r.L.length,r.so,r.si,r.so-r.si]};
  const sr={name:'مصادر الأموال',title:'مصادر الأموال — '+per,head:['المصدر','المبلغ','النسبة %'],w:[24,16,10],green:[1],rows:grp(r.I,e=>e.src).map(([k,v])=>[k,v,r.si?Math.round(v/r.si*100):0]),foot:['المجموع',r.si,100]};
  xl('القاصة-تقرير-'+today()+'.xlsx',[pj,sr,mv])}
